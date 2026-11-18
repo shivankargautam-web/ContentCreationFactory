@@ -129,4 +129,4 @@ terraform init && terraform apply
 aws secretsmanager put-secret-value --secret-id "$(terraform output -raw app_secret_arn)" --secret-string file://secrets.json
 ```
 
-The frontend image bakes in `NEXT_PUBLIC_API_URL` at build time. Build it with `--build-arg NEXT_PUBLIC_API_URL=https://app.example.com`. The ALB routes `/api/*` to the backend.
+The frontend calls the API on its own origin. Locally, Next.js rewrites proxy `/api` and `/media` to `BACKEND_INTERNAL_URL`. On AWS, the ALB routes `/api/*` to the backend directly.

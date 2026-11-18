@@ -16,7 +16,7 @@ import type {
   User,
 } from "./types";
 
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 const PREFIX = "/api/v1";
 const STORAGE_KEY = "acf.tokens";
 

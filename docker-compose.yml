@@ -16,7 +16,7 @@ x-backend-env: &backend-env
   PUBLISHING_DRY_RUN: ${PUBLISHING_DRY_RUN:-true}
   STORAGE_BACKEND: local
   LOCAL_STORAGE_PATH: /data/media
-  MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-http://localhost:8000/media}
+  MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-/media}
   LOG_JSON: ${LOG_JSON:-false}
   OTEL_ENABLED: ${OTEL_ENABLED:-false}
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4317}
@@ -42,7 +42,8 @@ services:
       context: ./frontend
       target: runtime
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        BACKEND_INTERNAL_URL: http://backend:8000
     ports:
       - "3000:3000"
     depends_on:
