@@ -1,0 +1,8 @@
+environment            = "prod"
+aws_region             = "us-east-1"
+certificate_arn        = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx"
+public_url             = "https://app.example.com"
+alarm_email            = "oncall@example.com"
+backend_desired_count  = 2
+worker_desired_count   = 2
+frontend_desired_count = 2
