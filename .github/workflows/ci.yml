@@ -83,8 +83,9 @@ jobs:
       - run: docker compose build
       - name: Smoke test the stack
         run: |
-          docker compose up -d
-          for i in $(seq 1 30); do curl -fsS http://localhost:8000/health/ready && break; sleep 4; done
+          docker compose up -d --wait --wait-timeout 240
+          curl -fsS http://localhost:8000/health/ready
           curl -fsS http://localhost:3000/login > /dev/null
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/campaigns)" = 401  # frontend proxies the API
       - if: always()
         run: docker compose logs --tail=200 && docker compose down -v
