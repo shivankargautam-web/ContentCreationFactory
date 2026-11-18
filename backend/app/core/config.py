@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     # Storage
     storage_backend: Literal["local", "s3"] = "local"
     local_storage_path: str = "/tmp/acf-media"
+    media_public_base_url: str = "http://localhost:8000/media"  # served by the API when storage_backend=local
     s3_bucket: str | None = None
     s3_region: str = "us-east-1"
     s3_endpoint_url: str | None = None

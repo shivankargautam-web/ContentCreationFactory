@@ -1,10 +1,12 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.endpoints import health
 from app.api.v1.router import api_router
@@ -67,6 +69,9 @@ def create_app(container: Container | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+    if settings.storage_backend == "local":
+        Path(settings.local_storage_path).mkdir(parents=True, exist_ok=True)
+        app.mount("/media", StaticFiles(directory=settings.local_storage_path), name="media")
     configure_telemetry(settings, app=app, engine=container.database.engine)
     return app
 

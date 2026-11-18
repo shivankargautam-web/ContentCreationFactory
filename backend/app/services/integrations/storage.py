@@ -16,7 +16,7 @@ class ObjectStorage(Protocol):
 
 
 class LocalObjectStorage:
-    def __init__(self, root: str, public_base_url: str = "file://") -> None:
+    def __init__(self, root: str, public_base_url: str = "/media/") -> None:
         self._root = Path(root)
         self._root.mkdir(parents=True, exist_ok=True)
         self._public_base_url = public_base_url
@@ -41,7 +41,8 @@ class LocalObjectStorage:
         return path
 
     async def url_for(self, key: str) -> str:
-        return f"{self._public_base_url}{self._path(key)}"
+        self._path(key)  # validates the key stays inside the storage root
+        return f"{self._public_base_url.rstrip('/')}/{key.lstrip('/')}"
 
 
 class S3ObjectStorage:
@@ -84,4 +85,4 @@ class S3ObjectStorage:
 def build_storage(settings: Settings) -> ObjectStorage:
     if settings.storage_backend == "s3":
         return S3ObjectStorage(settings)
-    return LocalObjectStorage(settings.local_storage_path)
+    return LocalObjectStorage(settings.local_storage_path, settings.media_public_base_url)

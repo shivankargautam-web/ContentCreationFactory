@@ -16,7 +16,7 @@ COPY . .
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 FROM deps AS runtime
-RUN useradd --create-home --uid 10001 acf
+RUN useradd --create-home --uid 10001 acf && mkdir -p /data/media && chown acf:acf /data/media
 COPY --chown=acf:acf . .
 USER acf
 EXPOSE 8000
