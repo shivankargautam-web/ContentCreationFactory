@@ -24,7 +24,7 @@ jobs:
           POSTGRES_DB: acf_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U acf" --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U acf -d acf_test" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       TEST_DATABASE_URL: postgresql+asyncpg://acf:acf@localhost:5432/acf_test
       DATABASE_URL: postgresql+asyncpg://acf:acf@localhost:5432/acf_test
@@ -39,9 +39,9 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check . && ruff format --check .
       - run: mypy app
-      - run: pytest --cov=app --cov-report=term-missing
-      - name: Migrations apply, match models, and roll back
+      - name: Migrations apply, match models, and roll back (before pytest, which resets the schema)
         run: alembic upgrade head && alembic check && alembic downgrade base && alembic upgrade head
+      - run: pytest --cov=app --cov-report=term-missing
 
   frontend:
     runs-on: ubuntu-latest
@@ -83,8 +83,9 @@ jobs:
       - run: docker compose build
       - name: Smoke test the stack
         run: |
-          docker compose up -d
-          for i in $(seq 1 30); do curl -fsS http://localhost:8000/health/ready && break; sleep 4; done
+          docker compose up -d --wait --wait-timeout 240
+          curl -fsS http://localhost:8000/health/ready
           curl -fsS http://localhost:3000/login > /dev/null
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/v1/campaigns)" = 401  # frontend proxies the API
       - if: always()
         run: docker compose logs --tail=200 && docker compose down -v
