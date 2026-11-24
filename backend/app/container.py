@@ -2,6 +2,8 @@
 
 from functools import cached_property
 
+import httpx
+
 from app.agents import PublisherAgent, PublishingGateway, ResearchAgent, ScriptAgent, SEOAgent, VideoAgent
 from app.core.config import Settings, get_settings
 from app.core.security import JWTService, PasswordHasher, TokenCipher
@@ -25,6 +27,7 @@ from app.services.integrations.storage import ObjectStorage, build_storage
 from app.services.integrations.tts import ElevenLabsTextToSpeech, NullTextToSpeech, TextToSpeech
 from app.services.integrations.youtube import YouTubeClient
 from app.services.media.renderer import FFmpegVideoRenderer, VideoRenderer
+from app.services.oauth_service import OAuthService
 from app.services.platform_account_service import PlatformAccountService
 from app.services.publishing_service import PublishingService
 from app.workflows.content_pipeline import ContentPipeline, PipelineAgents
@@ -110,6 +113,13 @@ class Container:
     # Factories for per-transaction services (used by API dependencies and Celery tasks)
     def platform_account_service(self, uow: UnitOfWork) -> PlatformAccountService:
         return PlatformAccountService(uow, self.token_cipher, self.youtube_client)
+
+    @cached_property
+    def oauth_http(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(timeout=30)
+
+    def oauth_service(self, uow: UnitOfWork) -> OAuthService:
+        return OAuthService(self.settings, uow, self.platform_account_service(uow), self.oauth_http)
 
     def publishing_service(self, uow: UnitOfWork) -> PublishingService:
         return PublishingService(

@@ -22,6 +22,7 @@ locals {
     { name = "ENVIRONMENT", value = var.environment == "prod" ? "production" : "staging" },
     { name = "REDIS_URL", value = local.redis_url },
     { name = "CORS_ORIGINS", value = local.public_url },
+    { name = "PUBLIC_APP_URL", value = local.public_url },
     { name = "STORAGE_BACKEND", value = "s3" },
     { name = "S3_BUCKET", value = aws_s3_bucket.media.bucket },
     { name = "S3_REGION", value = var.aws_region },
@@ -33,7 +34,7 @@ locals {
   ]
 
   backend_secrets = [
-    for key in ["DATABASE_URL", "JWT_SECRET_KEY", "TOKEN_ENCRYPTION_KEY", "OPENAI_API_KEY", "ELEVENLABS_API_KEY", "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET"] :
+    for key in ["DATABASE_URL", "JWT_SECRET_KEY", "TOKEN_ENCRYPTION_KEY", "OPENAI_API_KEY", "ELEVENLABS_API_KEY", "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "META_APP_ID", "META_APP_SECRET"] :
     { name = key, valueFrom = "${aws_secretsmanager_secret.app.arn}:${key}::" }
   ]
 

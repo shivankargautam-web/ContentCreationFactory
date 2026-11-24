@@ -6,7 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { Empty, ErrorBanner, PlatformTag } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import type { Platform, PlatformAccount, Role, User } from "@/lib/types";
+import type { OAuthProviders, Platform, PlatformAccount, Role, User } from "@/lib/types";
 
 export default function SettingsPage() {
   const { user, can } = useAuth();
@@ -65,43 +65,44 @@ function ProfileCard() {
   );
 }
 
-const EMPTY_ACCOUNT = { platform: "youtube" as Platform, account_name: "", external_account_id: "", access_token: "", refresh_token: "" };
+const PLATFORM_LABEL: Record<Platform, string> = { youtube: "YouTube", instagram: "Instagram" };
+const SIGN_IN_LABEL: Record<Platform, string> = {
+  youtube: "Connect YouTube (sign in with Google)",
+  instagram: "Connect Instagram (sign in with Facebook)",
+};
+
+function readOAuthResult(): { connected?: string; error?: string } {
+  if (typeof window === "undefined") return {};
+  const params = new URLSearchParams(window.location.search);
+  const result = { connected: params.get("connected") ?? undefined, error: params.get("oauth_error") ?? undefined };
+  if (result.connected || result.error) window.history.replaceState(null, "", window.location.pathname);
+  return result;
+}
 
 function PlatformAccountsCard() {
   const [accounts, setAccounts] = useState<PlatformAccount[]>([]);
-  const [form, setForm] = useState(EMPTY_ACCOUNT);
+  const [providers, setProviders] = useState<OAuthProviders | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<Platform | null>(null);
   const load = useCallback(() => api.listAccounts().then(setAccounts).catch(setError), []);
   useEffect(() => {
     load();
+    api.oauthProviders().then(setProviders).catch(setError);
+    const result = readOAuthResult();
+    if (result.connected) setNotice(`${PLATFORM_LABEL[result.connected as Platform] ?? result.connected} connected.`);
+    if (result.error) setError(new Error(result.error));
   }, [load]);
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm({ ...form, [k]: e.target.value });
-
-  async function connect(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
+  async function signIn(platform: Platform) {
+    setBusy(platform);
     setError(null);
     try {
-      await api.connectAccount({
-        platform: form.platform,
-        account_name: form.account_name,
-        external_account_id: form.external_account_id,
-        access_token: form.access_token,
-        refresh_token: form.refresh_token || undefined,
-        scopes:
-          form.platform === "youtube"
-            ? ["https://www.googleapis.com/auth/youtube.upload"]
-            : ["instagram_basic", "instagram_content_publish"],
-      });
-      setForm(EMPTY_ACCOUNT);
-      await load();
+      const { authorization_url } = await api.oauthAuthorizeUrl(platform);
+      window.location.assign(authorization_url);
     } catch (err) {
       setError(err);
-    } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -110,9 +111,10 @@ function PlatformAccountsCard() {
       <div className="card-header">
         <h2>Connected accounts</h2>
       </div>
+      {notice && <div className="alert alert-success">{notice}</div>}
       <ErrorBanner error={error} />
       {accounts.length === 0 ? (
-        <Empty title="No accounts connected">Without an account, publishing runs in dry-run mode when enabled.</Empty>
+        <Empty title="No accounts connected">Connect YouTube or Instagram so reels can be posted.</Empty>
       ) : (
         <ul className="list">
           {accounts.map((a) => (
@@ -123,7 +125,7 @@ function PlatformAccountsCard() {
                   <div className="list-title">{a.account_name}</div>
                   <div className="muted small">
                     {a.external_account_id}
-                    {a.token_expires_at && ` · token expires ${formatDateTime(a.token_expires_at)}`}
+                    {` · connected ${formatDateTime(a.created_at)}`}
                   </div>
                 </div>
               </div>
@@ -137,40 +139,31 @@ function PlatformAccountsCard() {
           ))}
         </ul>
       )}
-      <form className="form" onSubmit={connect}>
+      <div className="form">
         <h3>Connect an account</h3>
-        <div className="grid grid-2 gap-md">
-          <label>
-            Platform
-            <select value={form.platform} onChange={set("platform")}>
-              <option value="youtube">YouTube</option>
-              <option value="instagram">Instagram</option>
-            </select>
-          </label>
-          <label>
-            Display name
-            <input required value={form.account_name} onChange={set("account_name")} />
-          </label>
+        <div className="connect-buttons">
+          {(["youtube", "instagram"] as Platform[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className="btn btn-primary"
+              disabled={busy !== null || providers?.[p] === false}
+              onClick={() => signIn(p)}
+            >
+              {busy === p ? "Redirecting…" : SIGN_IN_LABEL[p]}
+            </button>
+          ))}
         </div>
-        <label>
-          {form.platform === "youtube" ? "Channel ID" : "Instagram business account ID"}
-          <input required value={form.external_account_id} onChange={set("external_account_id")} />
-        </label>
-        <label>
-          Access token
-          <input required type="password" autoComplete="off" value={form.access_token} onChange={set("access_token")} />
-        </label>
-        {form.platform === "youtube" && (
-          <label>
-            Refresh token <span className="hint">(recommended — enables automatic renewal)</span>
-            <input type="password" autoComplete="off" value={form.refresh_token} onChange={set("refresh_token")} />
-          </label>
+        {providers && (!providers.youtube || !providers.instagram) && (
+          <p className="hint">
+            {[!providers.youtube && "YouTube sign-in needs YOUTUBE_CLIENT_ID/SECRET", !providers.instagram && "Instagram sign-in needs META_APP_ID/SECRET"]
+              .filter(Boolean)
+              .join(" · ")}{" "}
+            on the server.
+          </p>
         )}
-        <p className="hint">Tokens are encrypted at rest and never returned by the API.</p>
-        <button className="btn btn-primary" disabled={busy}>
-          {busy ? "Connecting…" : "Connect account"}
-        </button>
-      </form>
+        <p className="hint">You approve access on Google or Facebook. Tokens are encrypted at rest and never shown in the app.</p>
+      </div>
     </div>
   );
 }

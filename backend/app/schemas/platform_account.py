@@ -28,3 +28,12 @@ class PlatformAccountRead(ORMModel):
     scopes: list[str]
     is_active: bool
     created_at: datetime
+
+
+class OAuthProviders(BaseModel):
+    youtube: bool
+    instagram: bool
+
+
+class OAuthAuthorization(BaseModel):
+    authorization_url: str

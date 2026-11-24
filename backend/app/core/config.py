@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     # Platforms
     youtube_client_id: str | None = None
     youtube_client_secret: SecretStr | None = None
+    meta_app_id: str | None = None
+    meta_app_secret: SecretStr | None = None
+    # Public origin users reach the app on; OAuth redirect URIs are built from it.
+    public_app_url: str = "http://localhost:3000"
     meta_graph_api_version: str = "v21.0"
     publishing_dry_run: bool = False
 

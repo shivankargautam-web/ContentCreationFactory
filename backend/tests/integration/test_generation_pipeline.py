@@ -144,3 +144,32 @@ async def test_failed_generation_marks_item_failed(
 
     regen = await client.post(f"/api/v1/content-items/{item_id}/regenerate", headers=editor_headers)
     assert regen.status_code == 202 and regen.json()["status"] == "pending"
+
+
+async def test_post_now_makes_one_reel_and_publishes_it(
+    client: AsyncClient, editor_headers: dict, container
+) -> None:
+    explanation = (
+        "Explain how Kafka consumer groups rebalance when a consumer joins. "
+        "Keep it beginner friendly and mention partitions."
+    )
+    resp = await client.post(
+        "/api/v1/campaigns",
+        json={"instruction": explanation, "mode": "now", "platforms": ["youtube"]},
+        headers=editor_headers,
+    )
+    assert resp.status_code == 201, resp.text
+    created = resp.json()
+    assert created["mode"] == "now" and created["total_items"] == 1
+    assert created["topic"] == "Explain how Kafka consumer groups rebalance when a consumer joins"
+    item = created["content_items"][0]
+    assert item["subtopic"].startswith("Explain how Kafka") and "partitions" in item["subtopic"]
+    scheduled = datetime.fromisoformat(item["scheduled_at"])
+    assert scheduled.replace(tzinfo=scheduled.tzinfo or UTC) <= datetime.now(UTC)
+    assert len(container.dispatcher.generation) == 1
+
+    state = await _generate(container, item["id"])
+    assert {(r["platform"], r["status"]) for r in state["publish_results"]} == {("youtube", "published")}
+    campaign = (await client.get(f"/api/v1/campaigns/{created['id']}", headers=editor_headers)).json()
+    assert campaign["status"] == "completed"
+    assert campaign["content_items"][0]["status"] == "published"

@@ -3,17 +3,42 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api";
-import type { CampaignDetail, Platform } from "@/lib/types";
+import type { CampaignDetail, CampaignMode, Platform } from "@/lib/types";
 import { ErrorBanner } from "./ui";
 
-const EXAMPLES = [
-  "Generate 10 shorts about Kafka architecture. Publish one per day at 9AM EST.",
-  "Create 5 reels on Kubernetes networking, every 2 days at 6pm PST starting Monday",
-  "Make 7 videos about Python async programming, publish daily at 12:30 UTC",
-];
+const EXAMPLES: Record<CampaignMode, string[]> = {
+  now: [
+    "Explain how Kafka consumer groups rebalance when a new consumer joins",
+    "Three tips for writing faster SQL queries, aimed at junior developers",
+    "Why Python's GIL matters for multithreading, with a simple analogy",
+  ],
+  scheduled: [
+    "Generate 10 shorts about Kafka architecture. Publish one per day at 9AM EST.",
+    "Create 5 reels on Kubernetes networking, every 2 days at 6pm PST starting Monday",
+    "Make 7 videos about Python async programming, publish daily at 12:30 UTC",
+  ],
+};
+
+const MODE_COPY: Record<CampaignMode, { label: string; prompt: string; hint: string; submit: string; busy: string }> = {
+  now: {
+    label: "Post now",
+    prompt: "What should the reel be about?",
+    hint: "Write a topic or a short explanation. We make one reel and post it as soon as it's ready.",
+    submit: "Create & post reel",
+    busy: "Starting…",
+  },
+  scheduled: {
+    label: "Schedule a series",
+    prompt: "Describe the series and its schedule",
+    hint: "Say how many videos and when to post, e.g. “one per day at 9AM EST”.",
+    submit: "Create campaign",
+    busy: "Planning campaign…",
+  },
+};
 
 export function CreateCampaignForm({ compact = false, onCreated }: { compact?: boolean; onCreated?: (c: CampaignDetail) => void }) {
   const router = useRouter();
+  const [mode, setMode] = useState<CampaignMode>("now");
   const [instruction, setInstruction] = useState("");
   const [platforms, setPlatforms] = useState<Platform[]>(["youtube", "instagram"]);
   const [name, setName] = useState("");
@@ -35,6 +60,7 @@ export function CreateCampaignForm({ compact = false, onCreated }: { compact?: b
     try {
       const campaign = await api.createCampaign({
         instruction,
+        mode,
         platforms,
         name: name || undefined,
         tone: tone || undefined,
@@ -50,22 +76,39 @@ export function CreateCampaignForm({ compact = false, onCreated }: { compact?: b
     }
   }
 
+  const copy = MODE_COPY[mode];
+
   return (
     <form onSubmit={onSubmit} className="form">
       <ErrorBanner error={error} />
+      <div className="segmented" role="radiogroup" aria-label="How to publish">
+        {(["now", "scheduled"] as CampaignMode[]).map((m) => (
+          <button
+            type="button"
+            key={m}
+            role="radio"
+            aria-checked={mode === m}
+            className={mode === m ? "active" : ""}
+            onClick={() => setMode(m)}
+          >
+            {MODE_COPY[m].label}
+          </button>
+        ))}
+      </div>
       <label>
-        What should we make?
+        {copy.prompt}
         <textarea
           required
           minLength={10}
           rows={compact ? 3 : 4}
-          placeholder={EXAMPLES[0]}
+          placeholder={EXAMPLES[mode][0]}
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
         />
+        <span className="hint">{copy.hint}</span>
       </label>
       <div className="chips">
-        {EXAMPLES.map((ex) => (
+        {EXAMPLES[mode].map((ex) => (
           <button type="button" key={ex} className="chip" onClick={() => setInstruction(ex)}>
             {ex.length > 48 ? `${ex.slice(0, 48)}…` : ex}
           </button>
@@ -97,7 +140,7 @@ export function CreateCampaignForm({ compact = false, onCreated }: { compact?: b
         </div>
       )}
       <button className="btn btn-primary" disabled={busy}>
-        {busy ? "Planning campaign…" : "Create campaign"}
+        {busy ? copy.busy : copy.submit}
       </button>
     </form>
   );

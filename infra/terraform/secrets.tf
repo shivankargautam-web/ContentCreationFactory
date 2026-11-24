@@ -25,6 +25,8 @@ resource "aws_secretsmanager_secret_version" "app" {
     ELEVENLABS_API_KEY    = ""
     YOUTUBE_CLIENT_ID     = ""
     YOUTUBE_CLIENT_SECRET = ""
+    META_APP_ID           = ""
+    META_APP_SECRET       = ""
   })
   lifecycle {
     ignore_changes = [secret_string]
