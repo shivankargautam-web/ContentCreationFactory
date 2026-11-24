@@ -29,6 +29,13 @@ describe("ApiClient", () => {
     expect(init.headers.Authorization).toBe("Bearer access-1");
   });
 
+  it("uses same-origin URLs when no base URL is configured", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(json(200, { items: [], total: 0, limit: 20, offset: 0 }));
+    const client = new ApiClient("", memoryStore(pair("access-1")), fetchMock);
+    await client.listCampaigns({ status: "scheduled" });
+    expect(fetchMock.mock.calls[0]![0]).toBe(`${window.location.origin}/api/v1/campaigns?status=scheduled`);
+  });
+
   it("refreshes once on 401 and retries the original request", async () => {
     const store = memoryStore(pair("expired"));
     const fetchMock = vi
