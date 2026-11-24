@@ -78,7 +78,9 @@ export class ApiClient {
 
   async request<T>(path: string, opts: RequestOptions = {}, retry = true): Promise<T> {
     const { method = "GET", body, query, auth = true } = opts;
-    const url = new URL(`${this.baseUrl}${PREFIX}${path}`);
+    // An empty base URL means same-origin requests through the Next.js /api proxy.
+    const origin = typeof window === "undefined" ? "http://localhost" : window.location.origin;
+    const url = new URL(`${this.baseUrl}${PREFIX}${path}`, origin);
     for (const [k, v] of Object.entries(query ?? {})) {
       if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
     }
