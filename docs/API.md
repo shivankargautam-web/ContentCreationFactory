@@ -27,6 +27,9 @@ Machine-readable contract: [`openapi.json`](openapi.json) (served at `/api/v1/op
 | GET | `/api/v1/content-items/{item_id}/video-url` | Video Url | — | `VideoUrl` |
 | GET | `/api/v1/platform-accounts` | List Accounts | — | `PlatformAccountRead[]` |
 | POST | `/api/v1/platform-accounts` | Connect Account | `PlatformAccountCreate` | `PlatformAccountRead` |
+| GET | `/api/v1/platform-accounts/oauth/providers` | Oauth Providers | — | `OAuthProviders` |
+| GET | `/api/v1/platform-accounts/oauth/{platform}/authorize` | Oauth Authorize | — | `OAuthAuthorization` |
+| GET | `/api/v1/platform-accounts/oauth/{platform}/callback` | Provider redirect target (`code`, `state`); 302 to `/settings?connected=…` or `?oauth_error=…` | — | 302 |
 | DELETE | `/api/v1/platform-accounts/{account_id}` | Disconnect Account | — | 204/202 |
 | GET | `/api/v1/analytics/summary` | Summary | — | `AnalyticsSummary` |
 | GET | `/api/v1/analytics/timeseries` | Timeseries | — | `TimeseriesPoint[]` |
@@ -71,6 +74,7 @@ Machine-readable contract: [`openapi.json`](openapi.json) (served at `/api/v1/op
 | Field | Type | Required |
 |---|---|---|
 | `instruction` | string | yes |
+| `mode` | `"scheduled"` \| `"now"` |  |
 | `name` | string \| null |  |
 | `platforms` | array |  |
 | `start_date` | string \| null |  |
@@ -97,6 +101,7 @@ Machine-readable contract: [`openapi.json`](openapi.json) (served at `/api/v1/op
 | `tone` | string \| null | yes |
 | `target_audience` | string \| null | yes |
 | `status` | CampaignStatus | yes |
+| `mode` | `"scheduled"` \| `"now"` |  |
 | `created_at` | string | yes |
 | `updated_at` | string | yes |
 | `content_items` | array |  |
@@ -119,6 +124,7 @@ Machine-readable contract: [`openapi.json`](openapi.json) (served at `/api/v1/op
 | `tone` | string \| null | yes |
 | `target_audience` | string \| null | yes |
 | `status` | CampaignStatus | yes |
+| `mode` | `"scheduled"` \| `"now"` |  |
 | `created_at` | string | yes |
 | `updated_at` | string | yes |
 
@@ -127,6 +133,7 @@ Machine-readable contract: [`openapi.json`](openapi.json) (served at `/api/v1/op
 | Field | Type | Required |
 |---|---|---|
 | `status` | CampaignStatus | yes |
+| `mode` | `"scheduled"` \| `"now"` |  |
 
 ### ContentItemDetail
 
@@ -198,6 +205,19 @@ Machine-readable contract: [`openapi.json`](openapi.json) (served at `/api/v1/op
 | `total` | integer | yes |
 | `limit` | integer | yes |
 | `offset` | integer | yes |
+
+### OAuthAuthorization
+
+| Field | Type | Required |
+|---|---|---|
+| `authorization_url` | string | yes |
+
+### OAuthProviders
+
+| Field | Type | Required |
+|---|---|---|
+| `youtube` | boolean | yes |
+| `instagram` | boolean | yes |
 
 ### PlatformAccountCreate
 

@@ -24,3 +24,10 @@ async def test_connect_list_disconnect(client: AsyncClient, editor_headers: dict
     resp = await client.delete(f"/api/v1/platform-accounts/{created.json()['id']}", headers=editor_headers)
     assert resp.status_code == 204
     assert (await client.get("/api/v1/platform-accounts", headers=editor_headers)).json() == []
+
+
+async def test_oauth_unconfigured(client: AsyncClient, editor_headers: dict) -> None:
+    providers = await client.get("/api/v1/platform-accounts/oauth/providers", headers=editor_headers)
+    assert providers.json() == {"youtube": False, "instagram": False}
+    resp = await client.get("/api/v1/platform-accounts/oauth/youtube/authorize", headers=editor_headers)
+    assert resp.status_code == 422 and "YOUTUBE_CLIENT_ID" in resp.text

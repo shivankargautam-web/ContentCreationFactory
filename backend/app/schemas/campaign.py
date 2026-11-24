@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime, time
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, Field, field_validator
@@ -34,8 +35,16 @@ class CampaignPlan(BaseModel):
     _tz = field_validator("timezone")(_validate_tz)
 
 
+CampaignMode = Literal["scheduled", "now"]
+
+
 class CampaignCreate(BaseModel):
     instruction: str = Field(min_length=10, max_length=4000)
+    mode: CampaignMode = Field(
+        default="scheduled",
+        description="'scheduled' plans a series from the instruction; "
+        "'now' makes one reel and posts it right away",
+    )
     name: str | None = Field(default=None, max_length=255)
     platforms: list[Platform] = Field(
         default_factory=lambda: [Platform.YOUTUBE, Platform.INSTAGRAM], min_length=1
@@ -68,6 +77,7 @@ class CampaignRead(ORMModel):
     tone: str | None
     target_audience: str | None
     status: CampaignStatus
+    mode: CampaignMode = "scheduled"
     created_at: datetime
     updated_at: datetime
 

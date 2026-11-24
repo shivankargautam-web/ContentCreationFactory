@@ -919,7 +919,7 @@
           "platform-accounts"
         ],
         "summary": "Connect Account",
-        "description": "Store OAuth tokens (encrypted at rest) for a YouTube channel or Instagram business account.",
+        "description": "Store OAuth tokens directly (automation / advanced use). The UI uses the sign-in flow below.",
         "operationId": "connect_account_api_v1_platform_accounts_post",
         "requestBody": {
           "content": {
@@ -958,6 +958,80 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/v1/platform-accounts/oauth/providers": {
+      "get": {
+        "tags": [
+          "platform-accounts"
+        ],
+        "summary": "Oauth Providers",
+        "description": "Which platforms have sign-in configured on this deployment.",
+        "operationId": "oauth_providers_api_v1_platform_accounts_oauth_providers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProviders"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/platform-accounts/oauth/{platform}/authorize": {
+      "get": {
+        "tags": [
+          "platform-accounts"
+        ],
+        "summary": "Oauth Authorize",
+        "description": "Return the Google / Facebook consent URL the browser should navigate to.",
+        "operationId": "oauth_authorize_api_v1_platform_accounts_oauth__platform__authorize_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Platform"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorization"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/platform-accounts/{account_id}": {
@@ -1275,6 +1349,16 @@
             "minLength": 10,
             "title": "Instruction"
           },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "now"
+            ],
+            "title": "Mode",
+            "description": "'scheduled' plans a series from the instruction; 'now' makes one reel and posts it right away",
+            "default": "scheduled"
+          },
           "name": {
             "anyOf": [
               {
@@ -1432,6 +1516,15 @@
           "status": {
             "$ref": "#/components/schemas/CampaignStatus"
           },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "now"
+            ],
+            "title": "Mode",
+            "default": "scheduled"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -1548,6 +1641,15 @@
           },
           "status": {
             "$ref": "#/components/schemas/CampaignStatus"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "now"
+            ],
+            "title": "Mode",
+            "default": "scheduled"
           },
           "created_at": {
             "type": "string",
@@ -1930,6 +2032,37 @@
         },
         "type": "object",
         "title": "MetricTotals"
+      },
+      "OAuthAuthorization": {
+        "properties": {
+          "authorization_url": {
+            "type": "string",
+            "title": "Authorization Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "authorization_url"
+        ],
+        "title": "OAuthAuthorization"
+      },
+      "OAuthProviders": {
+        "properties": {
+          "youtube": {
+            "type": "boolean",
+            "title": "Youtube"
+          },
+          "instagram": {
+            "type": "boolean",
+            "title": "Instagram"
+          }
+        },
+        "type": "object",
+        "required": [
+          "youtube",
+          "instagram"
+        ],
+        "title": "OAuthProviders"
       },
       "Page_CampaignRead_": {
         "properties": {

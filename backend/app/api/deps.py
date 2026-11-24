@@ -16,6 +16,7 @@ from app.services.analytics_service import AnalyticsService
 from app.services.auth_service import AuthService
 from app.services.campaign_service import CampaignService
 from app.services.content_service import ContentService
+from app.services.oauth_service import OAuthService
 from app.services.platform_account_service import PlatformAccountService
 from app.services.user_service import UserService
 
@@ -90,6 +91,10 @@ def get_platform_account_service(uow: UoWDep, container: ContainerDep) -> Platfo
     return container.platform_account_service(uow)
 
 
+def get_oauth_service(uow: UoWDep, container: ContainerDep) -> OAuthService:
+    return container.oauth_service(uow)
+
+
 def get_analytics_service(uow: UoWDep) -> AnalyticsService:
     return AnalyticsService(uow)
 
@@ -101,5 +106,6 @@ def get_user_service(uow: UoWDep) -> UserService:
 CampaignServiceDep = Annotated[CampaignService, Depends(get_campaign_service)]
 ContentServiceDep = Annotated[ContentService, Depends(get_content_service)]
 PlatformAccountServiceDep = Annotated[PlatformAccountService, Depends(get_platform_account_service)]
+OAuthServiceDep = Annotated[OAuthService, Depends(get_oauth_service)]
 AnalyticsServiceDep = Annotated[AnalyticsService, Depends(get_analytics_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]

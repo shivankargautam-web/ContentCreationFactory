@@ -96,10 +96,24 @@ CI (`.github/workflows/ci.yml`) runs all of these, plus `terraform validate` and
 
 ## Connecting platforms
 
-Use **Settings → Connected accounts** (`POST /api/v1/platform-accounts`). Tokens are Fernet-encrypted at rest and are never returned by the API.
+Use **Settings → Connected accounts** and click **Connect YouTube** (Google sign-in) or **Connect Instagram** (Facebook sign-in). The backend runs the OAuth code flow, discovers the channel / Instagram professional accounts, and stores the tokens Fernet-encrypted; they are never returned by the API.
 
-- **YouTube**: a channel ID plus an OAuth access token and refresh token with the `youtube.upload` scope. `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` must be set so expiring tokens refresh automatically.
-- **Instagram**: an Instagram Business account ID plus a long-lived token with `instagram_content_publish`. The Graph API fetches the video by URL, so production must use `STORAGE_BACKEND=s3`; presigned URLs are generated automatically.
+Register these redirect URIs with the providers (`PUBLIC_APP_URL` is the URL users open, default `http://localhost:3000`):
+
+- `{PUBLIC_APP_URL}/api/v1/platform-accounts/oauth/youtube/callback`
+- `{PUBLIC_APP_URL}/api/v1/platform-accounts/oauth/instagram/callback`
+
+- **YouTube**: set `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET` (Google Cloud OAuth client, YouTube Data API v3 enabled). Sign-in requests `youtube.upload` + `youtube.readonly` with offline access; access tokens refresh automatically.
+- **Instagram**: set `META_APP_ID` / `META_APP_SECRET` (Meta app with Facebook Login). The Instagram account must be Business or Creator and linked to a Facebook Page. The app stores the Page token, which does not expire. The Graph API fetches the video by URL, so production must use `STORAGE_BACKEND=s3`; presigned URLs are generated automatically.
+
+`POST /api/v1/platform-accounts` still accepts tokens directly for automation.
+
+## Post now vs. schedule
+
+The create form has two modes (`mode` on `POST /api/v1/campaigns`):
+
+- **Post now** (`"now"`): write a topic or explanation; one reel is generated and published as soon as it is rendered.
+- **Schedule a series** (`"scheduled"`, default): e.g. "Generate 10 shorts about Kafka architecture. Publish one per day at 9AM EST."
 
 ## Observability
 

@@ -40,3 +40,7 @@ class Campaign(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     content_items: Mapped[list["ContentItem"]] = relationship(
         back_populates="campaign", cascade="all, delete-orphan", order_by="ContentItem.sequence_number"
     )
+
+    @property
+    def mode(self) -> str:
+        return str((self.settings or {}).get("mode", "scheduled"))

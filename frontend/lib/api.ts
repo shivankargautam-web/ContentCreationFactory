@@ -7,7 +7,9 @@ import type {
   CampaignDetail,
   CampaignStatus,
   ContentItemDetail,
+  OAuthProviders,
   Page,
+  Platform,
   PlatformAccount,
   PlatformAccountCreate,
   Role,
@@ -215,6 +217,12 @@ export class ApiClient {
   }
   connectAccount(payload: PlatformAccountCreate) {
     return this.request<PlatformAccount>("/platform-accounts", { method: "POST", body: payload });
+  }
+  oauthProviders() {
+    return this.request<OAuthProviders>("/platform-accounts/oauth/providers");
+  }
+  oauthAuthorizeUrl(platform: Platform) {
+    return this.request<{ authorization_url: string }>(`/platform-accounts/oauth/${platform}/authorize`);
   }
   disconnectAccount(id: string) {
     return this.request<void>(`/platform-accounts/${id}`, { method: "DELETE" });

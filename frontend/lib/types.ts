@@ -43,6 +43,7 @@ export interface Campaign {
   tone: string | null;
   target_audience: string | null;
   status: CampaignStatus;
+  mode: CampaignMode;
   created_at: string;
   updated_at: string;
 }
@@ -123,8 +124,11 @@ export interface CampaignDetail extends Campaign {
   content_items: ContentItem[];
 }
 
+export type CampaignMode = "scheduled" | "now";
+
 export interface CampaignCreate {
   instruction: string;
+  mode?: CampaignMode;
   name?: string;
   platforms: Platform[];
   timezone?: string;
@@ -181,6 +185,8 @@ export interface PlatformAccount {
   is_active: boolean;
   created_at: string;
 }
+
+export type OAuthProviders = Record<Platform, boolean>;
 
 export interface PlatformAccountCreate {
   platform: Platform;

@@ -10,7 +10,7 @@ from app.models.enums import CampaignStatus, ContentStatus, JobStatus, UserRole
 from app.models.user import User
 from app.repository.unit_of_work import UnitOfWork
 from app.scheduler.schedule_planner import compute_schedule
-from app.schemas.campaign import CalendarEvent, CampaignCreate
+from app.schemas.campaign import CalendarEvent, CampaignCreate, CampaignPlan
 from app.services.dispatcher import TaskDispatcher
 from app.services.instruction_parser import InstructionParser
 
@@ -37,6 +37,8 @@ class CampaignService:
 
     async def create(self, user: User, payload: CampaignCreate, now: datetime | None = None) -> Campaign:
         now = now or datetime.now(UTC)
+        if payload.mode == "now":
+            return await self._create_quick(user, payload, now)
         tz_hint = payload.timezone or self._default_tz
         plan = await self._parser.parse(
             payload.instruction, now.astimezone(ZoneInfo(tz_hint)).date(), tz_hint
@@ -79,11 +81,50 @@ class CampaignService:
             )
             for i, slot in enumerate(slots)
         ]
+        return await self._persist(user, campaign, payload.auto_generate)
+
+    async def _create_quick(self, user: User, payload: CampaignCreate, now: datetime) -> Campaign:
+        """One reel from a free-form topic or explanation, published as soon as it is rendered."""
+        text = " ".join(payload.instruction.split())
+        topic = _headline(text)
+        tz_name = payload.timezone or self._default_tz
+        local_now = now.astimezone(ZoneInfo(tz_name))
+        plan = CampaignPlan(
+            topic=topic,
+            total_items=1,
+            publish_time=local_now.time().replace(second=0, microsecond=0),
+            timezone=tz_name,
+        )
+        campaign = Campaign(
+            owner_id=user.id,
+            name=payload.name or f"Reel: {topic[:200]}",
+            instruction=payload.instruction,
+            topic=plan.topic,
+            total_items=1,
+            interval_hours=plan.interval_hours,
+            publish_time=plan.publish_time,
+            timezone=plan.timezone,
+            start_date=local_now.date(),
+            platforms=[p.value for p in payload.platforms],
+            tone=payload.tone,
+            target_audience=payload.target_audience,
+            status=CampaignStatus.GENERATING if payload.auto_generate else CampaignStatus.DRAFT,
+            settings={"auto_generate": payload.auto_generate, "mode": "now"},
+        )
+        campaign.content_items = [
+            ContentItem(
+                sequence_number=1, subtopic=text[:500], scheduled_at=now, status=ContentStatus.PENDING
+            )
+        ]
+        return await self._persist(user, campaign, payload.auto_generate)
+
+    async def _persist(self, user: User, campaign: Campaign, auto_generate: bool) -> Campaign:
         await self._uow.campaigns.add(campaign)
         await self._uow.commit()
-        logger.info("campaign.created", campaign_id=str(campaign.id), items=plan.total_items)
-
-        if payload.auto_generate:
+        logger.info(
+            "campaign.created", campaign_id=str(campaign.id), items=campaign.total_items, mode=campaign.mode
+        )
+        if auto_generate:
             for item in campaign.content_items:
                 self._dispatcher.enqueue_generation(item.id)
         return await self.get(user, campaign.id)
@@ -160,3 +201,15 @@ class CampaignService:
     def _authorize(user: User, campaign: Campaign) -> None:
         if user.role != UserRole.ADMIN and campaign.owner_id != user.id:
             raise AuthorizationError("You do not have access to this campaign")
+
+
+def _headline(text: str, limit: int = 120) -> str:
+    """Short topic line from free-form text: first sentence, trimmed on a word boundary."""
+    first = text.split(". ")[0].strip().rstrip(".!?")
+    for prefix in ("make a reel about ", "make a short about ", "create a reel about ", "a reel about "):
+        if first.lower().startswith(prefix):
+            first = first[len(prefix) :]
+            break
+    if len(first) <= limit:
+        return first or text[:limit]
+    return first[:limit].rsplit(" ", 1)[0] + "…"
